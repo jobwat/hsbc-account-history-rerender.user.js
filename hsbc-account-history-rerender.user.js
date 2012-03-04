@@ -35,53 +35,119 @@ if(document.getElementsByTagName('title')[0].text.match("Account History")){
 				return this;
 			}
 
-			// previous feature, finally annoying: forcing range to the maximum by default (90days)
-			/*$.each($("select"), function(index, value){
-					if(value.name=="transactionDays")
-					// if transactionDays select == 0 (default value), then set it to largest range
-					if(value.name=="transactionDays" && $(value).val()==0){
-						$(value).val($(value.options).get(-1).value);
-						// then fire the select onchange
-						$(value).trigger("change"); 
-					}
-				});*/
-			
 			// set some style (no need to have wide spaces around lines)
 			$('<style type="text/css">table.hsbcTableStyle07 tr td{ padding:0px 5px 0px 5px; line-height: 1em; }</style>').prependTo($('head'));
 			
 			// beautify each line content + stack values in an array
-			var myData = [];
-			$.each($("table.hsbcTableStyle07 tr"), function(TRind, TRval) {
-				//console.log('TR ' + TRind, TRval);
-				// initiate 2 variables before beginning of loop
-				var lineDate=null;
-				var lineVal=null;
-				var mytd = $(this).children("td").each(function(index, value){
-					//console.log('TD ' + index, value);
+			var graphData = [];
+      var allData = [];
 
-					if(value.headers=="header1"){
-						// reformat the date column and stack it for the graph
-						date=new Date(value.innerHTML);
-						// if not a date, get out
-						if(!date.getTime()) return false;
-						value.innerHTML='<span style="float:right">'+DOW[date.getDay()]+', '+date.getDate()+' '+Months[date.getMonth()]+' '+date.getFullYear()+'</span>';
-						lineDate=date.getTime();
+      Line = function() {
+        this.timestamp = undefined;
+      }
+      Line.prototype.setDate = function(dateString) {
+        this.timestamp = new Date(dateString).getTime();
+      }
+      Line.prototype.hasDate = function() {
+        return !(this.timestamp == undefined || isNaN(this.timestamp));
+      }
+      Line.prototype.getDate = function(){ // reformat the date column
+        if(this.hasDate()){
+          date = new Date(this.timestamp);
+          return '<span style="float:right">'+DOW[date.getDay()]+', '+date.getDate()+' '+Months[date.getMonth()]+' '+date.getFullYear()+'</span>';
+        }
+        else{
+          return undefined;
+        }
+      }
+      Line.prototype.setDetails = function(detailsHTML) { // remove some non-useful data from details column and make it 1 line only
+				tmp=detailsHTML.split('<br>');
+        this.details = this.cleanStrings(tmp[0] + ' - ' + tmp[2] + ' - ' + tmp[3] + ' ' + tmp[4]);
+      }
+      Line.prototype.getDetails = function(){
+        return this.details;
+      }
+      Line.prototype.setDebit = function(debit){
+        this.debit = this.cleanAmounts(debit);
+      }
+      Line.prototype.getDebit = function(){
+        return this.displayDigits(this.emptyIfZero(this.debit));
+      }
+      Line.prototype.setCredit = function(credit){
+        this.credit = this.cleanAmounts(credit);
+      }
+      Line.prototype.getCredit = function(){
+        return this.displayDigits(this.emptyIfZero(this.credit));
+      }
+      Line.prototype.setBalance = function(balance){
+        this.balance = this.cleanAmounts(balance);
+      }
+      Line.prototype.getBalance = function(){
+        return this.displayDigits(this.balance);
+      }
+      Line.prototype.cleanAmounts = function(value){
+        tmp = parseFloat(this.cleanStrings(value).replace(/[^0-9\.]/g,''));
+        if(isNaN(tmp)) return 0;
+        else return tmp;
+      }
+      Line.prototype.cleanStrings = function(value){
+        return value.replace(/[\t\n\r 	]+/g,' ');
+      }
+      Line.prototype.displayDigits = function(value){
+       return value.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,");
+      }
+      Line.prototype.emptyIfZero = function(value){
+        if(value==0) return '&nbsp;';
+        else return value+'&nbsp;';
+      }
+
+      History = function(){
+        this.lines = [];
+      }
+      History.prototype.add = function(line){
+        this.lines.push(line);
+      }
+
+      var history = new History();
+
+			$.each($("table.hsbcTableStyle07 tr"), function(TRind, TRval) { // each tr
+        
+        line = new Line()
+				
+        var mytd = $(this).children("td").each(function(index, td){ // each td
+
+					if(td.headers=="header1"){ // the date
+            line.setDate(td.innerHTML);
+            if(line.hasDate()){ td.innerHTML=line.getDate(); }
+            else { return false; }
 					}
-					else if(value.headers=="header2"){
-						// remove some non-useful data from details column and make it 1 line only
-						tmp=value.innerHTML.split('<br>');
-						tmp1=tmp[0] + ' - ' + tmp[2] + ' - ' + tmp[3] + ' ' + tmp[4];
-						value.innerHTML=tmp1.replace(/[\n ]+/g,' ');
+					else if(td.headers=="header2"){ // the details
+            line.setDetails(td.innerHTML);
+            td.innerHTML = line.getDetails();
 					}
-					else if(value.headers=="header5"){
-						// stack value for the graph
-						lineVal=value.innerHTML.replace(/[\t\n\r 	]+/g,'').replace(/,/g,'');
+          else if(td.headers=="header3"){ // debit
+            line.setDebit(td.innerHTML);
+            td.innerHTML = line.getDebit();
+          }
+          else if(td.headers=="header4"){ // credit
+            line.setCredit(td.innerHTML);
+            td.innerHTML = line.getCredit();
+          }
+					else if(td.headers=="header5"){ // balance
+            line.setBalance(td.innerHTML);
+						td.innerHTML = line.getBalance();
 					}
 				});
-				if(lineDate!=null && lineVal!=null) myData.push([lineDate, lineVal]);
+
+				if(line.getDate()!=undefined && line.getBalance()!=undefined){
+          history.add(line);
+          graphData.push([line.timestamp, line.getBalance()]);
+        }
+
 			});
+
+      console.log(history.lines[0]);
 			
-			//console.log(myData);
 			
 			// 2e part: load jquery.flot to draw a chart
 			$.getScript('http://localhost/js/jquery.flot.js', function() {
@@ -103,7 +169,7 @@ if(document.getElementsByTagName('title')[0].text.match("Account History")){
 				
 				// draw the chart in its div
 				// TODO: do way better ! watch here: http://people.iola.dk/olau/flot/examples/stacking.html
-				$.plot($("#placeholder"), [myData], { xaxis: { mode: "time" } });
+				$.plot($("#placeholder"), [graphData], { xaxis: { mode: "time" } });
 				
 				// display a button to toggle chart visibility
 				$('<a class="hsbcLinkStyle06">Display chart</a>')
