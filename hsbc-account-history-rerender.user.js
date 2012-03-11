@@ -107,6 +107,9 @@ if(document.getElementsByTagName('title')[0].text.match("Account History")){
       History.prototype.add = function(line){
         this.lines.push(line);
       }
+      History.prototype.toJSON = function(){
+       return JSON.stringify(this.lines);
+      }
 
       var history = new History();
 
@@ -141,12 +144,55 @@ if(document.getElementsByTagName('title')[0].text.match("Account History")){
 
 				if(line.getDate()!=undefined && line.getBalance()!=undefined){
           history.add(line);
-          graphData.push([line.timestamp, line.getBalance()]);
+          graphData.push([line.timestamp, line.balance]);
         }
 
 			});
 
-      console.log(history.lines[0]);
+      fourlast = $(history.lines).slice(-4); 
+      fivelast = $(history.lines).slice(-5); 
+      threeFromfivelast = $(fivelast).slice(0,3); 
+      
+      console.log('last 4');
+      $.each(fourlast, function(index, line){
+        console.log(line);
+      });
+      console.log('3 from last 5');
+      $.each(threeFromfivelast, function(index, line){
+        console.log(line);
+      });
+
+      finalHist = $.merge(fourlast, threeFromfivelast);
+      finalHist.sort(function(a,b){
+        if(a.timestamp < b.timestamp) return 1;
+        else if(a.timestamp > b.timestamp) return -1;
+        else{
+          if(a.details < b.details) return 1;
+          else if(a.details > b.details) return -1;
+          else return 0;
+        }
+      });
+      
+      console.log('before trimming');
+      $.each(finalHist, function(index, line){
+        console.log(line);
+      });
+
+      var ind = 1;
+      while(ind < finalHist.length){
+        if(finalHist[ind-1].timestamp == finalHist[ind].timestamp && finalHist[ind-1].details == finalHist[ind].details){
+          finalHist = $.merge($(finalHist).slice(0, ind), $(finalHist).slice(ind+1, finalHist.length))
+        }
+        else
+          ind++;
+      }
+
+      console.log('final');
+      $.each(finalHist, function(index, line){
+        console.log(line);
+      });
+
+      //console.log(history.toJSON());
 			
 			
 			// 2e part: load jquery.flot to draw a chart
