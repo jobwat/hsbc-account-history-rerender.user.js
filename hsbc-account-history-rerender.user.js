@@ -38,11 +38,27 @@ if(document.getElementsByTagName('title')[0].text.match("Account History")){
   		// set some style (no need to have wide spaces around lines)
   		$('<style type="text/css">table.hsbcTableStyle07 tr td{ padding:0px 5px 0px 5px; line-height: 1em; }</style>').prependTo($('head'));
 
-  		// beautify each line content + stack values in an array for the graph
-  		var graphData = [];
+  		var graphData = [];   // array containing values for the graph
+      var the_table = $("table.hsbcTableStyle07");  // the interesting table object of the page
+
+      // We will first go through all lines of the table
+      // Get their content, load our objects and rewrite all, but lighter
+
+      clearTable = function(){
+        trs = $('tr', the_table);
+        trs.each(function(index, tr){ if(index!=0 && index!=(trs.length-1)){ $(tr).addClass('to_del'); } });
+        $('tr.to_del', the_table).remove();
+      }
 
       Line = function() {
         this.timestamp = undefined;
+      }
+      Line.prototype.populate = function(line_data_array) {
+        this.timestamp = line_data_array.timestamp;
+        this.details = line_data_array.details;
+        this.debit = line_data_array.debit;
+        this.credit = line_data_array.credit;
+        this.balance = line_data_array.balance;
       }
       Line.prototype.setDate = function(dateString) {
         this.timestamp = new Date(dateString).getTime();
@@ -136,12 +152,42 @@ if(document.getElementsByTagName('title')[0].text.match("Account History")){
         history.merge(this);
         console.log('after merge: ' + this.lines.length + 'lines');
       }
+      History.prototype.displayAll = function(){
+        clearTable();
+        last_tr = $('tr', the_table).last(); // the greyed line with sorting arrows at the bottom
 
+        $(this.lines).each(function(index, line_data_array){
+          var line = new Line();
+          line.populate(line_data_array);
+          tr = $('<tr class="hsbcTableRow0'+((index%2==0)?'3':'4')+'">\
+            <td class="hsbcTableColumn03" headers="header1">'+line.getDate()+'</td>\
+            <td class="" headers="header2">'+line.getDetails()+'</td>\
+            <td class="hsbcTableColumn03" headers="header3">'+line.getDebit()+'</td>\
+            <td class="hsbcTableColumn03" headers="header4">'+line.getCredit()+'</td>\
+            <td class="hsbcTableColumn03" headers="header5">'+line.getBalance()+'</td>\
+            <td class="hsbcTableColumn03" headers="header6">&nbsp;</td>\
+          </tr>');
+          tr.insertBefore(last_tr);
+        });
+      }
 
+      var previous_history = new History();
       var history = new History();
-      var prev_line = new Line();
 
-      the_table = $("table.hsbcTableStyle07")
+      // recover the account name
+      var account_name = $('#LongSelection1 option[value="'+$('#LongSelection1').val()+'"]').text().replace(/[^a-zA-Z]/g, '');
+      console.log('account_name: ', account_name);
+
+      // recover existing history
+      if ( previous_history_JSON = localStorage.getItem(account_name) ){
+        previous_history.lines = eval(JSON.parse(previous_history_JSON));
+      }
+      else{
+        previous_history.lines = [];
+      }
+
+      // loop through table lines
+      var prev_line = new Line();
   		$.each($("tr", the_table), function(TRind, TRval) { // each tr
 
         line = new Line();
@@ -175,31 +221,26 @@ if(document.getElementsByTagName('title')[0].text.match("Account History")){
   				}
   			});
 
-  			if(line.getDate()!=undefined && line.getBalance()!=undefined){
+  			if(line.getDate()!=undefined && line.getBalance()!=undefined){ // the first and last tr of the array are the sorting arrows
           history.add(line);
           graphData.push([line.timestamp, line.balance]);
-        }
-        else {
-          console.log('line not added to history', line);
         }
 
         prev_line = line;
 
   		});
 
-      // $(history.lines).each(function(index, line){
-      //   tr = $('<tr class="hsbcTableRow0'+((index%2==0)?'3':'4')+'">');
-      //   tr.append($('<td class="hsbcTableColumn03" headers="header1">'+line.getDate()+'</td>'));
-      //   tr.append($('<td class="" headers="header2">'+line.getDetails()+'</td>'));
-      //   tr.append($('<td class="hsbcTableColumn03" headers="header3">'+line.getDebit()+'</td>'));
-      //   tr.append($('<td class="hsbcTableColumn03" headers="header4">'+line.getCredit()+'</td>'));
-      //   tr.append($('<td class="hsbcTableColumn03" headers="header5">'+line.getBalance()+'</td>'));
-      //   tr.append($('<td class="hsbcTableColumn03" headers="header6">'+(index+1)+'</td>'));
-      //   the_table.append(tr);
-      // });
 
-      //console.log(history.toJSON());
+      // console.log('prev histo: ', previous_history.lines, previous_history.lines.length);
+      // console.log('-------');
+      // console.log('histo: ', history.lines, history.lines.length);
 
+      // merging previous history with actual one and save it locally
+      history.merge(previous_history);
+      localStorage.setItem(account_name, JSON.stringify(history.lines))
+
+      // rewrite the whole thing
+      history.displayAll();
 
   		// 2e part: load jquery.flot to draw a chart
   		$.getScript('http://localhost/js/jquery.flot.js', function() {
