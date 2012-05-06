@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name           HSBC - Account History enhancer
+// @name           HSBC - Account History Re-Rendering
 // @namespace      https://www.hsbc.com.au/*
 // @include        *
 // ==/UserScript==
