@@ -2,7 +2,7 @@
 
 ## Description
 
-The script re-render the account history using less spacing per line, removing some useless information, making the transactions listing much more readable.
+The script re-render the account history page by removing some useless spacing and informations, making the transactions listing much more readable.
 
 You can then see 60 transactions on the page (instead of 5...)
 A chart button gets available, giving another vision of your account life
@@ -17,9 +17,9 @@ Go fetch it on [its userscripts.org page](https://userscripts.org/scripts/show/7
 
 ## Screenshots
 
-![Screenshot](https://github.com/jobano/hsbc-account-history-rerender.user.js/raw/master/screenshots/without_script.png)
-![Screenshot](https://github.com/jobano/hsbc-account-history-rerender.user.js/raw/master/screenshots/with_script.png)
-![Screenshot](https://github.com/jobano/hsbc-account-history-rerender.user.js/raw/master/screenshots/with_script_displaying_chart.png)
+![Screenshot](https://github.com/jobano/hsbc-account-history-rerender.user.js/raw/master/screenshots/without_script.jpg)
+![Screenshot](https://github.com/jobano/hsbc-account-history-rerender.user.js/raw/master/screenshots/with_script.jpg)
+![Screenshot](https://github.com/jobano/hsbc-account-history-rerender.user.js/raw/master/screenshots/with_script_displaying_chart.jpg)
 
 
 ## Futur?
