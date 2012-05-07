@@ -5,14 +5,17 @@
 The script re-render the account history page by removing some useless spacing and informations, making the transactions listing much more readable.
 
 You can then see 60 transactions on the page (instead of 5...)
-A chart button gets available, giving another vision of your account life
+A chart button gets available, giving another vision of your account
 
 
 ## Install
 
-Go fetch it on [its userscripts.org page](https://userscripts.org/scripts/show/70023)
+note: this script has only be tested with Firefox
 
-(note that this script has only be tested using Firefox)
+- First you need to install [Greasemonkey](https://addons.mozilla.org/en-US/firefox/addon/greasemonkey/) (and restart Firefox)
+- Then go on [this userscripts.org page](https://userscripts.org/scripts/show/70023) and click 'Install'
+
+you should be good, your life will change! (if not, try [there](http://userscripts.org/about/installing))
 
 
 ## Screenshots
