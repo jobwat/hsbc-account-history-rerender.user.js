@@ -160,6 +160,7 @@ if(document.getElementsByTagName('title')[0].text.match("Account History")){
         $(this.lines).each(function(index, line_data_array){
           var line = new Line();
           line.populate(line_data_array);
+          graphData.push([line.timestamp, line.balance]);
           tr = $('<tr class="hsbcTableRow0'+((index%2==0)?'3':'4')+'">\
             <td class="hsbcTableColumn03" headers="header1">'+line.getDate()+'</td>\
             <td class="" headers="header2">'+line.getDetails()+'</td>\
@@ -225,7 +226,6 @@ if(document.getElementsByTagName('title')[0].text.match("Account History")){
 
   			if(line.getDate()!=undefined && line.getBalance()!=undefined){ // the first and last tr of the array are the sorting arrows
           history.add(line);
-          graphData.push([line.timestamp, line.balance]);
         }
 
         prev_line = line;
