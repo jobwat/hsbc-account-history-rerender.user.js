@@ -140,11 +140,12 @@ if(document.getElementsByTagName('title')[0].text.match("Account History")){
         var ind = 1;
         while(ind < merged.length){
           if(merged[ind-1].timestamp == merged[ind].timestamp && merged[ind-1].details == merged[ind].details){
-            merged = $.merge($(merged).slice(0, ind), $(merged).slice(ind+1, merged.length))
+            merged.splice(ind, 1);
           }
           else
             ind++;
         }
+
         this.lines = merged;
       }
       History.prototype.testMerge = function(){
@@ -181,6 +182,7 @@ if(document.getElementsByTagName('title')[0].text.match("Account History")){
       // recover existing history
       if ( previous_history_JSON = localStorage.getItem(account_name) ){
         previous_history.lines = eval(JSON.parse(previous_history_JSON));
+        console.log('previous history from localStorage: ', previous_history.lines.length);
       }
       else{
         previous_history.lines = [];
@@ -229,15 +231,14 @@ if(document.getElementsByTagName('title')[0].text.match("Account History")){
         prev_line = line;
 
   		});
-
-
-      // console.log('prev histo: ', previous_history.lines, previous_history.lines.length);
-      // console.log('-------');
-      // console.log('histo: ', history.lines, history.lines.length);
+      console.log('lines parsed: ', history.lines.length);
 
       // merging previous history with actual one and save it locally
       history.merge(previous_history);
-      localStorage.setItem(account_name, JSON.stringify(history.lines))
+
+      // saving new merged history to localStorage
+      localStorage.setItem(account_name, JSON.stringify(history.lines));
+      console.log('lines saved after merge: ', history.lines.length);
 
       // rewrite the whole thing
       history.displayAll();
