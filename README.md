@@ -25,8 +25,8 @@ you should be good, your life will change! (if not, try [there](http://userscrip
 ![Screenshot](https://github.com/jobano/hsbc-account-history-rerender.user.js/raw/master/screenshots/with_script_displaying_chart.jpg)
 
 
-## Futur?
+## More?
 
 I've been working on a retention feature (see [/beta_retention_localstorage](https://github.com/jobano/hsbc-account-history-rerender.user.js/tree/beta_retention_localstorage)
-It's still not really working so I keep it aside..
+It's working now but I'll let it aside as it's a bit special... (keep all your bank records in your localStorage for later consultation)
 
