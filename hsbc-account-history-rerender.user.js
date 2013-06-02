@@ -1,278 +1,259 @@
 // ==UserScript==
 // @name           HSBC - Account History Re-Rendering
-// @namespace      https://www.hsbc.com.au/*
-// @include        *
+// @namespace      Joseph Boiteau - github.com/jobwat
+// @description    The original acount history page was useless
+// @include        https://*.hsbc.com*
+// @grant          none
+// @require        http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js
+// @require        http://flot.googlecode.com/svn-history/r139/trunk/jquery.flot.js
 // ==/UserScript==
 
 // this script is only for the "Account History" page
 if(document.getElementsByTagName('title')[0].text.match("Account History")){
-  // Yes, I'm French :)
-  	var DOW = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
-  	var Months = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 
-  // Add jQuery (thx http://joanpiedra.com/jquery/greasemonkey/)
-  	var GM_JQ = document.createElement('script');
-  	//GM_JQ.src = 'http://jquery.com/src/jquery-latest.js';
-  	GM_JQ.src = 'http://localhost/js/jquery-latest.js';
-  	GM_JQ.type = 'text/javascript';
-  	document.getElementsByTagName('head')[0].appendChild(GM_JQ);
-    // Check if jQuery's loaded
-  	function GM_wait() {
-  			if(typeof unsafeWindow.jQuery == 'undefined') { window.setTimeout(GM_wait,100); }
-  	else { $ = unsafeWindow.jQuery; letsJQuery(); }
-  	}
-  	GM_wait();
+  // First have a centering function for final display
+  // Thx Tony L. - http://stackoverflow.com/questions/210717/what-is-the-best-way-to-center-a-div-on-the-screen-using-jquery
+  $.fn.center = function () {
+    this.css("position","absolute");
+    this.css("top", ( $(window).height() - this.height() ) / 2+$(window).scrollTop() + "px");
+    this.css("left", ( $(window).width() - this.width() ) / 2+$(window).scrollLeft() + "px");
+    return this;
+  }
 
-  // All your GM code must be inside this function
-  	function letsJQuery() {
+  // set some style (no need to have wide spaces around lines)
+  $('<style type="text/css">table.hsbcTableStyle07 tr td{ padding:0px 5px 0px 5px; line-height: 1em; white-space: nowrap; } </style>').prependTo($('head'));
 
-  		// First have a centering function for final display
-  		// Thx Tony L. - http://stackoverflow.com/questions/210717/what-is-the-best-way-to-center-a-div-on-the-screen-using-jquery
-  		$.fn.center = function () {
-  			this.css("position","absolute");
-  			this.css("top", ( $(window).height() - this.height() ) / 2+$(window).scrollTop() + "px");
-  			this.css("left", ( $(window).width() - this.width() ) / 2+$(window).scrollLeft() + "px");
-  			return this;
-  		}
+  var graphData = [];   // array containing values for the graph
+  var the_table = $("table.hsbcTableStyle07");  // the interesting table object of the page
 
-  		// set some style (no need to have wide spaces around lines)
-  		$('<style type="text/css">table.hsbcTableStyle07 tr td{ padding:0px 5px 0px 5px; line-height: 1em; }</style>').prependTo($('head'));
+  // We will first go through all lines of the table
+  // Get their content, load our objects and rewrite all, but lighter
 
-  		var graphData = [];   // array containing values for the graph
-      var the_table = $("table.hsbcTableStyle07");  // the interesting table object of the page
+  clearTable = function(){
+    trs = $('tr', the_table);
+    trs.each(function(index, tr){ if(index!=0 && index!=(trs.length-1)){ $(tr).addClass('to_del'); } });
+    $('tr.to_del', the_table).remove();
+  }
 
-      // We will first go through all lines of the table
-      // Get their content, load our objects and rewrite all, but lighter
+  Line = function() {
+    this.timestamp = undefined;
+  }
+  Line.prototype.populate = function(line_data_array) {
+    this.timestamp = line_data_array.timestamp;
+    this.details = line_data_array.details;
+    this.debit = line_data_array.debit;
+    this.credit = line_data_array.credit;
+    this.balance = line_data_array.balance;
+  }
+  Line.prototype.setDate = function(dateString) {
+    this.timestamp = new Date(dateString).getTime();
+  }
+  Line.prototype.hasDate = function() {
+    return !(this.timestamp == undefined || isNaN(this.timestamp));
+  }
+  Line.prototype.getDate = function(){ // reformat the date column
+    if(this.hasDate()){
+      date = new Date(this.timestamp);
+      return '<span style="float:right">'+weekdayArray[date.getDay()]+', '+date.getDate()+' '+monthArray[date.getMonth()].slice(0,3)+' '+date.getFullYear()+'</span>';
+    }
+    else{
+      return undefined;
+    }
+  }
+  Line.prototype.setDetails = function(detailsHTML) { // remove some non-useful data from details column and make it 1 line only
+    tmp=detailsHTML.split('<br>');
+    this.details = this.cleanStrings(tmp[0] + ' - ' + tmp[2] + ' - ' + tmp[3] + ' ' + tmp[4]);
+  }
+  Line.prototype.getDetails = function(){
+    return this.details;
+  }
+  Line.prototype.setDebit = function(debit){
+    this.debit = this.cleanAmounts(debit);
+  }
+  Line.prototype.getDebit = function(){
+    return this.displayDigits(this.emptyIfZero(this.debit));
+  }
+  Line.prototype.setCredit = function(credit){
+    this.credit = this.cleanAmounts(credit);
+  }
+  Line.prototype.getCredit = function(){
+    return this.displayDigits(this.emptyIfZero(this.credit));
+  }
+  Line.prototype.setBalance = function(balance){
+    this.balance = this.cleanAmounts(balance);
+  }
+  Line.prototype.getBalance = function(){
+    return this.displayDigits(this.balance);
+  }
+  Line.prototype.cleanAmounts = function(value){
+    tmp = parseFloat(this.cleanStrings(value).replace(/[^0-9\.]/g,''));
+    if(isNaN(tmp)) return 0;
+    else return tmp;
+  }
+  Line.prototype.cleanStrings = function(value){
+    return value.replace(/[\t\n\r   ]+/g,' ');
+  }
+  Line.prototype.displayDigits = function(value){
+   return value.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,");
+  }
+  Line.prototype.emptyIfZero = function(value){
+    if(value==0) return '&nbsp;';
+    else return value+'&nbsp;';
+  }
 
-      clearTable = function(){
-        trs = $('tr', the_table);
-        trs.each(function(index, tr){ if(index!=0 && index!=(trs.length-1)){ $(tr).addClass('to_del'); } });
-        $('tr.to_del', the_table).remove();
-      }
-
-      Line = function() {
-        this.timestamp = undefined;
-      }
-      Line.prototype.populate = function(line_data_array) {
-        this.timestamp = line_data_array.timestamp;
-        this.details = line_data_array.details;
-        this.debit = line_data_array.debit;
-        this.credit = line_data_array.credit;
-        this.balance = line_data_array.balance;
-      }
-      Line.prototype.setDate = function(dateString) {
-        this.timestamp = new Date(dateString).getTime();
-      }
-      Line.prototype.hasDate = function() {
-        return !(this.timestamp == undefined || isNaN(this.timestamp));
-      }
-      Line.prototype.getDate = function(){ // reformat the date column
-        if(this.hasDate()){
-          date = new Date(this.timestamp);
-          return '<span style="float:right">'+DOW[date.getDay()]+', '+date.getDate()+' '+Months[date.getMonth()]+' '+date.getFullYear()+'</span>';
-        }
-        else{
-          return undefined;
-        }
-      }
-      Line.prototype.setDetails = function(detailsHTML) { // remove some non-useful data from details column and make it 1 line only
-  			tmp=detailsHTML.split('<br>');
-        this.details = this.cleanStrings(tmp[0] + ' - ' + tmp[2] + ' - ' + tmp[3] + ' ' + tmp[4]);
-      }
-      Line.prototype.getDetails = function(){
-        return this.details;
-      }
-      Line.prototype.setDebit = function(debit){
-        this.debit = this.cleanAmounts(debit);
-      }
-      Line.prototype.getDebit = function(){
-        return this.displayDigits(this.emptyIfZero(this.debit));
-      }
-      Line.prototype.setCredit = function(credit){
-        this.credit = this.cleanAmounts(credit);
-      }
-      Line.prototype.getCredit = function(){
-        return this.displayDigits(this.emptyIfZero(this.credit));
-      }
-      Line.prototype.setBalance = function(balance){
-        this.balance = this.cleanAmounts(balance);
-      }
-      Line.prototype.getBalance = function(){
-        return this.displayDigits(this.balance);
-      }
-      Line.prototype.cleanAmounts = function(value){
-        tmp = parseFloat(this.cleanStrings(value).replace(/[^0-9\.]/g,''));
-        if(isNaN(tmp)) return 0;
-        else return tmp;
-      }
-      Line.prototype.cleanStrings = function(value){
-        return value.replace(/[\t\n\r   ]+/g,' ');
-      }
-      Line.prototype.displayDigits = function(value){
-       return value.toString().replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,");
-      }
-      Line.prototype.emptyIfZero = function(value){
-        if(value==0) return '&nbsp;';
-        else return value+'&nbsp;';
-      }
-
-      History = function(){
-        this.lines = [];
-      }
-      History.prototype.add = function(line){
-        this.lines.push(line);
-      }
-      History.prototype.toJSON = function(){
-        return JSON.stringify(this.lines);
-      }
-      History.prototype.merge = function(anotherHistory){
-        var merged = $.merge(this.lines, anotherHistory.lines);
-        merged.sort(function(a,b){
-          if(a.timestamp < b.timestamp) return 1;
-          else if(a.timestamp > b.timestamp) return -1;
-          else{
-            if(a.details < b.details) return 1;
-            else if(a.details > b.details) return -1;
-            else return 0;
-          }
-        });
-
-        var ind = 1;
-        while(ind < merged.length){
-          if(merged[ind-1].timestamp == merged[ind].timestamp && merged[ind-1].details == merged[ind].details){
-            merged.splice(ind, 1);
-          }
-          else
-            ind++;
-        }
-
-        this.lines = merged;
-      }
-      History.prototype.testMerge = function(){
-        console.log('before merge: ' + this.lines.length + 'lines');
-        history.merge(this);
-        console.log('after merge: ' + this.lines.length + 'lines');
-      }
-      History.prototype.displayAll = function(){
-        clearTable();
-        last_tr = $('tr', the_table).last(); // the greyed line with sorting arrows at the bottom
-
-        $(this.lines).each(function(index, line_data_array){
-          var line = new Line();
-          line.populate(line_data_array);
-          graphData.push([line.timestamp, line.balance]);
-          tr = $('<tr class="hsbcTableRow0'+((index%2==0)?'3':'4')+'">\
-            <td class="hsbcTableColumn03" headers="header1">'+line.getDate()+'</td>\
-            <td class="" headers="header2">'+line.getDetails()+'</td>\
-            <td class="hsbcTableColumn03" headers="header3">'+line.getDebit()+'</td>\
-            <td class="hsbcTableColumn03" headers="header4">'+line.getCredit()+'</td>\
-            <td class="hsbcTableColumn03" headers="header5">'+line.getBalance()+'</td>\
-            <td class="hsbcTableColumn03" headers="header6">&nbsp;</td>\
-          </tr>');
-          tr.insertBefore(last_tr);
-        });
-      }
-
-      var previous_history = new History();
-      var history = new History();
-
-      // recover the account name
-      var account_name = $('#LongSelection1 option[value="'+$('#LongSelection1').val()+'"]').text().replace(/[^a-zA-Z]/g, '');
-      console.log('account_name: ', account_name);
-
-      // recover existing history
-      if ( previous_history_JSON = localStorage.getItem(account_name) ){
-        previous_history.lines = eval(JSON.parse(previous_history_JSON));
-        console.log('previous history from localStorage: ', previous_history.lines.length);
-      }
+  History = function(){
+    this.lines = [];
+  }
+  History.prototype.add = function(line){
+    this.lines.push(line);
+  }
+  History.prototype.toJSON = function(){
+    return JSON.stringify(this.lines);
+  }
+  History.prototype.merge = function(anotherHistory){
+    var merged = $.merge(this.lines, anotherHistory.lines);
+    merged.sort(function(a,b){
+      if(a.timestamp < b.timestamp) return 1;
+      else if(a.timestamp > b.timestamp) return -1;
       else{
-        previous_history.lines = [];
+        if(a.details < b.details) return 1;
+        else if(a.details > b.details) return -1;
+        else return 0;
       }
+    });
 
-      // loop through table lines
-      var prev_line = new Line();
-  		$.each($("tr", the_table), function(TRind, TRval) { // each tr
+    var ind = 1;
+    while(ind < merged.length){
+      if(merged[ind-1].timestamp == merged[ind].timestamp && merged[ind-1].details == merged[ind].details){
+        merged.splice(ind, 1);
+      }
+      else
+        ind++;
+    }
 
-        line = new Line();
+    this.lines = merged;
+  }
+  History.prototype.testMerge = function(){
+    console.log('before merge: ' + this.lines.length + 'lines');
+    history.merge(this);
+    console.log('after merge: ' + this.lines.length + 'lines');
+  }
+  History.prototype.displayAll = function(){
+    clearTable();
+    last_tr = $('tr', the_table).last(); // the greyed line with sorting arrows at the bottom
 
-        var mytd = $(this).children("td").each(function(index, td){ // each td
+    $(this.lines).each(function(index, line_data_array){
+      var line = new Line();
+      line.populate(line_data_array);
+      graphData.push([line.timestamp, line.balance]);
+      tr = $('<tr class="hsbcTableRow0'+((index%2==0)?'3':'4')+'">\
+        <td class="hsbcTableColumn03" headers="header1">'+line.getDate()+'</td>\
+        <td class="" headers="header2">'+line.getDetails()+'</td>\
+        <td class="hsbcTableColumn03" headers="header3">'+line.getDebit()+'</td>\
+        <td class="hsbcTableColumn03" headers="header4">'+line.getCredit()+'</td>\
+        <td class="hsbcTableColumn03" headers="header5">'+line.getBalance()+'</td>\
+        <td class="hsbcTableColumn03" headers="header6">&nbsp;</td>\
+      </tr>');
+      tr.insertBefore(last_tr);
+    });
+  }
 
-  				if(td.headers=="header1"){ // the date
-            line.setDate(td.innerHTML);
-            if(line.hasDate()){ td.innerHTML=line.getDate(); }
-            else { return false; }
-  				}
-  				else if(td.headers=="header2"){ // the details
-            line.setDetails(td.innerHTML);
-            if(line.getDetails() == prev_line.getDetails()){ line.details = prev_line.getDetails() + ' (2x)'; }
-            td.innerHTML = line.getDetails();
-  				}
-          else if(td.headers=="header3"){ // debit
-            line.setDebit(td.innerHTML);
-            td.innerHTML = line.getDebit();
-          }
-          else if(td.headers=="header4"){ // credit
-            line.setCredit(td.innerHTML);
-            td.innerHTML = line.getCredit();
-          }
-  				else if(td.headers=="header5"){ // balance
-            line.setBalance(td.innerHTML);
-  					td.innerHTML = line.getBalance();
-  				}
-  				else if(td.headers=="header6"){ // empty last column
-  					td.innerHTML = history.lines.length + 1;
-  				}
-  			});
+  var previous_history = new History();
+  var history = new History();
 
-  			if(line.getDate()!=undefined && line.getBalance()!=undefined){ // the first and last tr of the array are the sorting arrows
-          history.add(line);
-        }
+  // recover the account name
+  var account_name = $('#LongSelection1 option[value="'+$('#LongSelection1').val()+'"]').text().replace(/[^a-zA-Z]/g, '');
+  console.log('account_name: ', account_name);
 
-        prev_line = line;
+  // recover existing history
+  if ( previous_history_JSON = localStorage.getItem(account_name) ){
+    previous_history.lines = eval(JSON.parse(previous_history_JSON));
+    console.log('previous history from localStorage: ', previous_history.lines.length);
+  }
+  else{
+    previous_history.lines = [];
+  }
 
-  		});
-      console.log('lines parsed: ', history.lines.length);
+  // loop through table lines
+  var prev_line = new Line();
+  $.each($("tr", the_table), function(TRind, TRval) { // each tr
 
-      // merging previous history with actual one and save it locally
-      history.merge(previous_history);
+    line = new Line();
 
-      // saving new merged history to localStorage
-      localStorage.setItem(account_name, JSON.stringify(history.lines));
-      console.log('lines saved after merge: ', history.lines.length);
+    var mytd = $(this).children("td").each(function(index, td){ // each td
 
-      // rewrite the whole thing
-      history.displayAll();
+      if(td.headers=="header1"){ // the date
+        line.setDate(td.innerHTML);
+        if(line.hasDate()){ td.innerHTML=line.getDate(); }
+        else { return false; }
+      }
+      else if(td.headers=="header2"){ // the details
+        line.setDetails(td.innerHTML);
+        if(line.getDetails() == prev_line.getDetails()){ line.details = prev_line.getDetails() + ' (2x)'; }
+        td.innerHTML = line.getDetails();
+      }
+      else if(td.headers=="header3"){ // debit
+        line.setDebit(td.innerHTML);
+        td.innerHTML = line.getDebit();
+      }
+      else if(td.headers=="header4"){ // credit
+        line.setCredit(td.innerHTML);
+        td.innerHTML = line.getCredit();
+      }
+      else if(td.headers=="header5"){ // balance
+        line.setBalance(td.innerHTML);
+        td.innerHTML = line.getBalance();
+      }
+      else if(td.headers=="header6"){ // empty last column
+        td.innerHTML = history.lines.length + 1;
+      }
+    });
 
-  		// 2e part: load jquery.flot to draw a chart
-  		$.getScript('http://localhost/js/jquery.flot.js', function() {
-  		//$.getScript('http://flot.googlecode.com/svn-history/r139/trunk/jquery.flot.js', function() {
+    if(line.getDate()!=undefined && line.getBalance()!=undefined){ // the first and last tr of the array are the sorting arrows
+      history.add(line);
+    }
 
-  			// show/hide functions
-  			function show(){
-  				$("#chartwrap")
-  					.css('display', 'block')
-  					.center();
-  			}
-  			function hide(){
-  				$("#chartwrap").css('display', 'none');
-  			}
+    prev_line = line;
 
-  			// add a div somewhere in the DOM
-  			$('<div id="chartwrap" style="border: 1px solid #AAA; background-color:white; position: absolute;"></div>').appendTo("body");
-  			$('<div id="placeholder" style="width:650px; height:300px;"></div>').appendTo("#chartwrap");
+  });
+  console.log('lines parsed: ', history.lines.length);
 
-  			// draw the chart in its div
-  			// TODO: do way better ! watch here: http://people.iola.dk/olau/flot/examples/stacking.html
-  			$.plot($("#placeholder"), [graphData], { xaxis: { mode: "time" } });
+  // merging previous history with actual one and save it locally
+  history.merge(previous_history);
 
-  			// display a button to toggle chart visibility
-  			$('<a class="hsbcLinkStyle06">Display chart</a>')
-  				.prependTo($('td.hsbcTableColumn03')[0])
-  				.css('cursor', 'pointer')
-  				.toggle(show, hide);
-  			$('#placeholder').click(hide);
+  // saving new merged history to localStorage
+  localStorage.setItem(account_name, JSON.stringify(history.lines));
+  console.log('lines saved after merge: ', history.lines.length);
 
-  			hide();
-  		});
-  	}
+  // rewrite the whole thing
+  history.displayAll();
+
+  // 2e part: draw a chart
+  
+  // show/hide functions
+  function show(){
+    $("#chartwrap")
+      .css('display', 'block')
+      .center();
+  }
+  function hide(){
+    $("#chartwrap").css('display', 'none');
+  }
+
+  // add a div somewhere in the DOM
+  $('<div id="chartwrap" style="border: 1px solid #AAA; background-color:white; position: absolute;"></div>').appendTo("body");
+  $('<div id="placeholder" style="width:650px; height:300px;"></div>').appendTo("#chartwrap");
+
+  // draw the chart in its div
+  // TODO: do way better ! watch here: http://people.iola.dk/olau/flot/examples/stacking.html
+  $.plot($("#placeholder"), [graphData], { xaxis: { mode: "time" } });
+
+  // display a button to toggle chart visibility
+  $('<a class="hsbcLinkStyle06">Display chart</a>')
+    .prependTo($('td.hsbcTableColumn03')[0])
+    .css('cursor', 'pointer')
+    .toggle(show, hide);
+  $('#placeholder').click(hide);
+
+  hide();
 }
