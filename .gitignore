@@ -1,0 +1,3 @@
+// GreaseMonkey will download the required libraries locally
+jquery.flot.js
+jquery.min.js
