@@ -11,7 +11,7 @@
 // this script is only for the "Account History" page
 if(document.getElementsByTagName('title')[0].text.match("Account History")){
 
-  // First have a centering function for final display
+  // centering function used in final display
   // Thx Tony L. - http://stackoverflow.com/questions/210717/what-is-the-best-way-to-center-a-div-on-the-screen-using-jquery
   $.fn.center = function () {
     this.css("position","absolute");
@@ -173,6 +173,9 @@ if(document.getElementsByTagName('title')[0].text.match("Account History")){
   else{
     previous_history.lines = [];
   }
+
+  // Drop the right panel containing mostly ads
+  $('.containerRightTools').remove()
 
   // loop through table lines
   var prev_line = new Line();
