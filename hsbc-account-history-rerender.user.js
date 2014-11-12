@@ -116,9 +116,9 @@ if(document.getElementsByTagName('title')[0].text.match("Account History")){
       if(a.timestamp < b.timestamp) return 1;
       else if(a.timestamp > b.timestamp) return -1;
       else{
-        if(a.details < b.details) return 1;
-        else if(a.details > b.details) return -1;
-        else return 0;
+        if(a.balance == b.balance + b.credit) return 1;
+        if(a.balance == b.balance - b.debit) return 1;
+        return -1;
       }
     });
 
