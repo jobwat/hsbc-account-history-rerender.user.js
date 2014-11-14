@@ -4,8 +4,9 @@
 // @description    The original acount history page was useless
 // @include        https://*.hsbc.com*
 // @grant          none
-// @require        http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js
-// @require        http://flot.googlecode.com/svn-history/r139/trunk/jquery.flot.js
+// @require        https://code.jquery.com/jquery-1.11.1.min.js
+// @require        http://cdnjs.cloudflare.com/ajax/libs/flot/0.8.2/jquery.flot.min.js
+// @require        http://cdnjs.cloudflare.com/ajax/libs/flot/0.8.2/jquery.flot.time.min.js
 // ==/UserScript==
 
 // this script is only for the "Account History" page
