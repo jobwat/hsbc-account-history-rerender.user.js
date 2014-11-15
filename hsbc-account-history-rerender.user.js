@@ -1,7 +1,10 @@
 // ==UserScript==
 // @name           HSBC - Account History Re-Rendering
-// @namespace      Joseph Boiteau - github.com/jobwat
-// @description    The original acount history page was useless
+// @description    Renders account history in a useful way, adds chart display
+// @namespace      http://github.com/jobwat/
+// @author         Joseph Boiteau
+// @version        2014.11.15
+// @homepage       https://github.com/jobwat/hsbc-account-history-rerender.user.js
 // @include        https://*.hsbc.com*
 // @grant          none
 // @require        https://code.jquery.com/jquery-1.11.1.min.js
