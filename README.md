@@ -2,31 +2,32 @@
 
 ## Description
 
-The script re-render the account history page by removing some useless spacing and informations, making the transactions listing much more readable.
+The script re-render the account history page in 2 ways:
+- style: it removes some useless spacing and informations, making the transactions listing way more readable. You can then see 60 transactions on the page (instead of 5...)
+- history: it stores locally (localStorage) the transactions history so you can consult more than the last 90 days offered by HSBC (so lame!)
 
-You can then see 60 transactions on the page (instead of 5...)
-A chart button gets available, giving another vision of your account
+Note: I can imagine some people being scared of having their transaction history on their localStorage, but I dont :)
+I'd even like to sync this transactions history to a cloud based service
+
+This script also add a 'Display chart' button at the top, offering a visual output of the account transactions
 
 
 ## Install
 
-note: this script has only be tested with Firefox
+### Install a UserScript extension on your browser
+- For firefox, there is [Greasemonkey](https://addons.mozilla.org/en-US/firefox/addon/greasemonkey/)
+- For Chromium, there is [Tampermonkey](https://chrome.google.com/webstore/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo)
 
-- First you need to install [Greasemonkey](https://addons.mozilla.org/en-US/firefox/addon/greasemonkey/) (and restart Firefox)
-- Then go on [this userscripts.org page](https://userscripts.org/scripts/show/70023) and click 'Install'
+### Install this script
+If you hit [the raw script url](https://github.com/jobwat/hsbc-account-history-rerender.user.js/raw/master/hsbc-account-history-rerender.user.js), the extension should explicitly offer to install the script. Click 'Install' :)
 
-you should be good, your life will change! (if not, try [there](http://userscripts.org/about/installing))
+### All done!
+Now when on the account summary page of HSBC, the page should appear way more compact and the old transactions (prior to 90days) should also be part of it!
 
 
 ## Screenshots
 
-![Screenshot](https://github.com/jobano/hsbc-account-history-rerender.user.js/raw/master/screenshots/without_script.jpg)
-![Screenshot](https://github.com/jobano/hsbc-account-history-rerender.user.js/raw/master/screenshots/with_script.jpg)
-![Screenshot](https://github.com/jobano/hsbc-account-history-rerender.user.js/raw/master/screenshots/with_script_displaying_chart.jpg)
-
-
-## More?
-
-I've been working on a retention feature (see [/beta_retention_localstorage](https://github.com/jobano/hsbc-account-history-rerender.user.js/tree/beta_retention_localstorage)
-It's working now but I'll let it aside as it's a bit special... (keep all your bank records in your localStorage for later consultation)
+![Screenshot](https://github.com/jobwat/hsbc-account-history-rerender.user.js/raw/master/screenshots/without_script.jpg)
+![Screenshot](https://github.com/jobwat/hsbc-account-history-rerender.user.js/raw/master/screenshots/with_script.jpg)
+![Screenshot](https://github.com/jobwat/hsbc-account-history-rerender.user.js/raw/master/screenshots/with_script_displaying_chart.jpg)
 
