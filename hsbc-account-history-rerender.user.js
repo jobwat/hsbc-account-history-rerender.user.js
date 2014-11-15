@@ -1,6 +1,6 @@
 // ==UserScript==
-// @name           HSBC - Account History Re-Rendering
-// @description    Renders account history in a useful way, adds chart display
+// @name           HSBC - Better Account History
+// @description    Better readability, forever transactions retention and a chart display
 // @namespace      http://github.com/jobwat/
 // @author         Joseph Boiteau
 // @version        2014.11.15
