@@ -5,7 +5,10 @@
 // @author         Joseph Boiteau
 // @version        2014.11.15
 // @homepage       https://github.com/jobwat/hsbc-account-history-rerender.user.js
-// @include        https://*.hsbc.com*
+// @updateURL      https://github.com/jobwat/hsbc-account-history-rerender.user.js/raw/master/hsbc-account-history-rerender.user.js
+// @include        https://*.hsbc.com/*
+// @include        https://*.hsbc.com.au/*
+// @include        https://*.hsbc.co.uk/*
 // @grant          none
 // @require        https://code.jquery.com/jquery-1.11.1.min.js
 // @require        http://cdnjs.cloudflare.com/ajax/libs/flot/0.8.2/jquery.flot.min.js
