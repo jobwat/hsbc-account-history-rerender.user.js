@@ -231,7 +231,7 @@ if(document.getElementsByTagName('title')[0].text.match("Account History")){
   console.log('lines parsed: ', account_history.lines.length);
 
   // merging previous history with actual one and save it locally
-  //account_history.merge(previous_history);
+  account_history.merge(previous_history);
 
   // saving new merged history to localStorage
   localStorage.setItem(account_name, JSON.stringify(account_history.lines));
